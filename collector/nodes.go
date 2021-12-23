@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -165,11 +166,12 @@ type filesystemIODeviceMetric struct {
 
 // Nodes information struct
 type Nodes struct {
-	logger log.Logger
-	client *http.Client
-	url    *url.URL
-	all    bool
-	node   string
+	logger  log.Logger
+	client  *http.Client
+	url     *url.URL
+	all     bool
+	node    string
+	timeout time.Duration
 
 	up                              prometheus.Gauge
 	totalScrapes, jsonParseFailures prometheus.Counter
@@ -183,13 +185,14 @@ type Nodes struct {
 }
 
 // NewNodes defines Nodes Prometheus metrics
-func NewNodes(logger log.Logger, client *http.Client, url *url.URL, all bool, node string) *Nodes {
+func NewNodes(logger log.Logger, client *http.Client, url *url.URL, all bool, node string, timeout time.Duration) *Nodes {
 	return &Nodes{
 		logger: logger,
 		client: client,
 		url:    url,
 		all:    all,
 		node:   node,
+		timeout: timeout,
 
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName(namespace, "node_stats", "up"),
@@ -1816,11 +1819,12 @@ func (c *Nodes) fetchAndDecodeNodeStats() (nodeStatsResponse, error) {
 	var nsr nodeStatsResponse
 
 	u := *c.url
+   timeout := fmt.Sprintf("%fs", c.timeout.Seconds())
 
 	if c.all {
-		u.Path = path.Join(u.Path, "/_nodes/stats")
+		u.Path = path.Join(u.Path, "/_nodes/stats", "?timeout=", timeout)
 	} else {
-		u.Path = path.Join(u.Path, "_nodes", c.node, "stats")
+		u.Path = path.Join(u.Path, "_nodes", c.node, "stats", "?timeout=", timeout)
 	}
 
 	res, err := c.client.Get(u.String())
