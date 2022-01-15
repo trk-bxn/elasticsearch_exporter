@@ -1819,13 +1819,13 @@ func (c *Nodes) fetchAndDecodeNodeStats() (nodeStatsResponse, error) {
 	var nsr nodeStatsResponse
 
 	u := *c.url
-   timeout := fmt.Sprintf("%fs", c.timeout.Seconds())
-
 	if c.all {
-		u.Path = path.Join(u.Path, "/_nodes/stats", "?timeout=", timeout)
+		u.Path = path.Join(u.Path, "/_nodes/stats")
 	} else {
-		u.Path = path.Join(u.Path, "_nodes", c.node, "stats", "?timeout=", timeout)
+		u.Path = path.Join(u.Path, "_nodes", c.node, "stats")
 	}
+
+   u.RawQuery = fmt.Sprintf("timeout=%s", c.timeout.String())
 
 	res, err := c.client.Get(u.String())
 	if err != nil {

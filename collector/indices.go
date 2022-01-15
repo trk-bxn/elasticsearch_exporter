@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -55,6 +56,7 @@ type Indices struct {
 	shards          bool
 	clusterInfoCh   chan *clusterinfo.Response
 	lastClusterInfo *clusterinfo.Response
+	timeout         time.Duration
 
 	up                prometheus.Gauge
 	totalScrapes      prometheus.Counter
@@ -65,7 +67,7 @@ type Indices struct {
 }
 
 // NewIndices defines Indices Prometheus metrics
-func NewIndices(logger log.Logger, client *http.Client, url *url.URL, shards bool) *Indices {
+func NewIndices(logger log.Logger, client *http.Client, url *url.URL, shards bool, timeout time.Duration) *Indices {
 
 	indexLabels := labels{
 		keys: func(...string) []string {
@@ -100,6 +102,7 @@ func NewIndices(logger log.Logger, client *http.Client, url *url.URL, shards boo
 		client:        client,
 		url:           url,
 		shards:        shards,
+		timeout:       timeout,
 		clusterInfoCh: make(chan *clusterinfo.Response),
 		lastClusterInfo: &clusterinfo.Response{
 			ClusterName: "unknown_cluster",
@@ -1065,9 +1068,9 @@ func (i *Indices) fetchAndDecodeIndexStats() (indexStatsResponse, error) {
 	u := *i.url
 	u.Path = path.Join(u.Path, "/_all/_stats")
 	if i.shards {
-		u.RawQuery = "ignore_unavailable=true&level=shards"
+		u.RawQuery = fmt.Sprintf("ignore_unavailable=true&timeout=%s&level=shards", i.timeout.String())
 	} else {
-		u.RawQuery = "ignore_unavailable=true"
+		u.RawQuery = fmt.Sprintf("ignore_unavailable=true&timeout=%s", i.timeout.String())
 	}
 
 	res, err := i.client.Get(u.String())
