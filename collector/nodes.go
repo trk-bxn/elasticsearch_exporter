@@ -187,11 +187,11 @@ type Nodes struct {
 // NewNodes defines Nodes Prometheus metrics
 func NewNodes(logger log.Logger, client *http.Client, url *url.URL, all bool, node string, timeout time.Duration) *Nodes {
 	return &Nodes{
-		logger: logger,
-		client: client,
-		url:    url,
-		all:    all,
-		node:   node,
+		logger:  logger,
+		client:  client,
+		url:     url,
+		all:     all,
+		node:    node,
 		timeout: timeout,
 
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
